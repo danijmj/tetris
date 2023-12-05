@@ -7,8 +7,8 @@ class Tetrix {
     timeTetrix = 300
     currentInterval
     
-    constructor () {
-        this.layout = new Layout(this.lWidth, this.lHeight)
+    constructor (div) {
+        this.layout = new Layout(div, this.lWidth, this.lHeight)
         // this.layout.draw()
         this.newPieze()
         this.eventKeyListen = document.addEventListener('keydown', this.detectMovement.bind(this), false)
@@ -108,7 +108,7 @@ class Tetrix {
 
 class Pieze {
     colors = [
-        '#fff',
+        '#2B5225',
         '#151551',
         '#AF6F55',
         '#555625'
@@ -215,7 +215,7 @@ class Layout {
     canvas
 
 
-    constructor(lWidth, lHeight) {
+    constructor(id, lWidth, lHeight) {
         this.lHeight = lHeight
         this.lWidth = lWidth
         this.matrix = []
@@ -228,11 +228,11 @@ class Layout {
                 this.matrix[h].push(new Box(0,''))
             }
         }
-        this.canvas = document.getElementById('canvastetrix')
+        this.canvas = document.getElementById(id)
         this.canvasContext = this.canvas.getContext('2d')
-        this.canvas.width = this.lWidth * BLOCKSIZE
-        this.canvas.height = this.lHeight * BLOCKSIZE
-        this.canvasContext.scale(BLOCKSIZE, BLOCKSIZE)
+        this.canvas.width = this.lWidth * (BLOCKSIZE + 2)
+        this.canvas.height = this.lHeight * (BLOCKSIZE + 2)
+        // this.canvasContext.scale(BLOCKSIZE, BLOCKSIZE)
     }
 
     draw(pieze) {
@@ -242,8 +242,10 @@ class Layout {
         this.matrix.forEach((row, y) => {
             row.forEach((item, x) => {
                 if (item.isFilled === 1) {
+                    this.canvasContext.fillStyle = '#fff'
+                    this.canvasContext.fillRect(x * (BLOCKSIZE + 2), y * (BLOCKSIZE + 2), (BLOCKSIZE + 2), (BLOCKSIZE + 2))
                     this.canvasContext.fillStyle = item.color
-                    this.canvasContext.fillRect(x, y, 1, 1)
+                    this.canvasContext.fillRect(x * (BLOCKSIZE + 2) + 1, y * (BLOCKSIZE + 2) + 1, (BLOCKSIZE + 2) - 2, (BLOCKSIZE + 2) - 2)
                 }
             })
         });
@@ -257,8 +259,16 @@ class Layout {
         pieze.structure.forEach((row, y) => {
             row.forEach((item, x) => {
                 if (item != null) {
+                    /* this.canvasContext.fillStyle = item.color
+                    this.canvasContext.fillRect((x + pieze.actualPos.x) * (BLOCKSIZE + 2), (y + pieze.actualPos.y) * (BLOCKSIZE + 2), (BLOCKSIZE + 2), (BLOCKSIZE + 2))
+                    */
+                    this.canvasContext.fillStyle = '#fff'
+                    this.canvasContext.fillRect((x + pieze.actualPos.x) * (BLOCKSIZE + 2), (y + pieze.actualPos.y) * (BLOCKSIZE + 2), (BLOCKSIZE + 2), (BLOCKSIZE + 2))
                     this.canvasContext.fillStyle = item.color
-                    this.canvasContext.fillRect(x + pieze.actualPos.x, y + pieze.actualPos.y, 1, 1)
+                    this.canvasContext.fillRect((x + pieze.actualPos.x) * (BLOCKSIZE + 2) + 1, (y + pieze.actualPos.y) * (BLOCKSIZE + 2) + 1, (BLOCKSIZE + 2) - 2, (BLOCKSIZE + 2) - 2)
+                
+
+
                 }
             })
         })
@@ -391,5 +401,7 @@ class Box {
     }
 }
 
-
-var partidaDeTretix1 = new Tetrix()
+var partidaDeTretix1
+window.onload = function(){
+    partidaDeTretix1 = new Tetrix('canvastetrix')
+}
