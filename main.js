@@ -4,7 +4,9 @@ class Tetrix {
     currentPieze = {}
     lWidth = 20
     lHeight = 50
+    timeTetrix = 300
     currentInterval
+    
     constructor () {
         this.layout = new Layout(this.lWidth, this.lHeight)
         // this.layout.draw()
@@ -31,7 +33,7 @@ class Tetrix {
             } else if(resultCheck.destroyPieze === true) {
                 this.destroyPieze()
             }
-        }, 200)
+        }, this.timeTetrix)
     }
 
     
@@ -51,6 +53,18 @@ class Tetrix {
                     self.layout.draw(self.currentPieze)
                 }
                 break;
+            case "ArrowUp":
+
+                self.currentPieze.turn()
+
+                /* newPos = Object.assign({}, self.currentPieze.actualPos)
+                newPos.x -= 1
+                resultCheck = self.layout.checkPunch(self.currentPieze.structure, newPos)
+                if (resultCheck.isOK === true) {
+                    self.currentPieze.left()
+                    self.layout.draw(self.currentPieze)
+                }
+                break; */
             case "ArrowRight":
                 newPos = Object.assign({}, self.currentPieze.actualPos)
                 newPos.x += 1
@@ -84,6 +98,8 @@ class Tetrix {
             this.currentPieze = {}
             // document.removeEventListener('keydown', this.detectMovement, false);
         })
+
+        this.layout.checkRowFilled()
         
         this.newPieze()
     }
@@ -99,7 +115,16 @@ class Pieze {
     ]
     forms = [
         [
-            [new Box (), null, null, null]
+            [new Box (), new Box ()],
+            [new Box (), new Box ()]
+        ],
+        [
+            [new Box (), new Box (), new Box ()],
+            [null,null, new Box ()]
+        ],
+        [
+            [null, new Box (), null],
+            [new Box (), new Box (), new Box ()]
         ],
         [
             [new Box (), new Box (), new Box (), new Box ()]
@@ -145,6 +170,32 @@ class Pieze {
                 }
             })
         })
+    }
+    turn () {
+        let newStructure = [[]]
+        let beforePos = this.actualPos
+
+        this.structure.forEach(e => e.reverse())
+        this.structure = this.structure.map((row, i) => {
+            row.forEach((e, n) => {
+                if (!newStructure[n]) {
+                    newStructure[n] = []
+                }
+                newStructure[n][i] = e
+            })
+            // newStructure.forEach(e => e.reverse())
+            
+        })
+        this.structure = newStructure
+
+        // Calculamos la posición actual
+        let sizeBefore = this.size
+        this.getSize()
+        
+        /* let width
+        width = beforePos.x - Math.round((sizeBefore - this.size))
+        this.actualPos = {x: width, y: beforePos.y} */
+
     }
     down () {
         this.actualPos.y ++
@@ -242,6 +293,11 @@ class Layout {
             }
         }
 
+        // Check matrix
+        if (ok.isOK) {
+            ok = this.checkMatrixPunch(copyStructure, newPos)
+        }
+
         return ok
     }
 
@@ -251,11 +307,34 @@ class Layout {
             row.forEach((item, x) => {
                 if(item != null && newPos.x + x >= this.lWidth) {
                     isOK = false
-                    return false
-                }
+                }                      
+                
             })
         })
         return isOK
+    }
+
+    checkMatrixPunch (structure, newPos) {
+        let ok = {isOK: true, destroyPieze: false}
+        structure.forEach((row, y) => {
+            row.forEach((item, x) => {
+                if(item != null) {
+                    this.matrix.forEach((mrow, my) => {
+                        mrow.forEach((el, mx) => {
+                            if (el.isFilled === 1) {
+                                if(newPos.x + x == mx && newPos.y + y == my) {
+                                    ok.isOK = false
+                                    if(y == structure.length - 1) {
+                                        ok.destroyPieze = true
+                                    }
+                                }
+                            }
+                        })
+                    });
+                } 
+            })
+        })
+        return ok
     }
 
     checkDownPunch (structure, newPos) {
@@ -280,6 +359,21 @@ class Layout {
             })
         });
         callback()
+    }
+
+    checkRowFilled() {
+        let self = this
+
+        this.matrix = this.matrix.filter (row => {
+            return (row.filter(e => e.isFilled).length !== self.lWidth)
+        })
+
+        for (let index = 0; index < this.lHeight - this.matrix.length; index++) {
+            this.matrix.unshift(new Array(this.lWidth))
+            
+        }
+            
+        
     }
 
 }
