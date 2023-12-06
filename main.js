@@ -1,42 +1,65 @@
 const BLOCKSIZE = 10
 
+/**
+ * Main class of Tetrix game
+ */
 class Tetrix {
-    currentPieze = {}
-    lWidth = 20
-    lHeight = 50
-    timeTetrix = 300
-    currentInterval
+    currentPieze = {} // The pieze that now we move and play in the canvas 
+    lWidth = 20 // Width of the matrixm, make reference to the "pixels" of the tetrix layout and tetrix piezes
+    lHeight = 50 // The same that lwidth but the height size
+    timeTetrix = 300 // Default time of the interval time (when the pieze back)
+    currentInterval // Var that will get the interval object
     
-    constructor (div) {
-        this.layout = new Layout(div, this.lWidth, this.lHeight)
-        // this.layout.draw()
+    /**
+     * Constructor that inicialize the game
+     * @param {string} canvId, canvas id to print the game
+     */
+    constructor (canvId) {
+        // Initializing the layout with the canvasID
+        this.layout = new Layout(canvId, this.lWidth, this.lHeight)
+        // Generate the first pieze of the tetrix
         this.newPieze()
+        // Initializing the keys events to manipulate the piezea
         this.eventKeyListen = document.addEventListener('keydown', this.detectMovement.bind(this), false)
     }
 
+    /**
+     * Method to generate a new pieze
+     */
     newPieze() {
+        // Generate a new pieze object
         this.currentPieze = new Pieze(this.lWidth, this.lHeight)
+        // Print the layout, with the new pieze
         this.layout.draw(this.currentPieze)
+        // Initializing the interval to down the pieze each 'this.timeTetrix' time
         this.down()
-        // this.detectMovement()
     }
 
+    /**
+     * Interval method that down the pieze
+     */
     down() {
         this.currentInterval = setInterval(() => {
-
+            // Make a copy of the current pieze position
             let newPos = Object.assign({}, this.currentPieze.actualPos)
+            // Check if the new position will have a colision with the layout or a 'rest' of the piezes in the current matrix
             newPos.y += 1
             let resultCheck = this.layout.checkPunch(this.currentPieze.structure, newPos)
+            // if we don't detect a colision, we back (and draw) the pieze in the new position 
             if (resultCheck.isOK === true) {
                 this.currentPieze.down()
                 this.layout.draw(this.currentPieze)
             } else if(resultCheck.destroyPieze === true) {
+                // If we can't continue, and we found that the pieze can't down more, we 'kill' or destroy the pieze
                 this.destroyPieze()
             }
         }, this.timeTetrix)
     }
 
-    
+    /**
+     * Method
+     * @param {*} event 
+     */
     detectMovement(event) {
         let self = this
         let newPos = {}
@@ -90,29 +113,39 @@ class Tetrix {
         
     }
 
-    
-
+    /**
+     * Method that destroy de actual pieze, call to detect if exist a full row in the canvas
+     * and call to generate new pieze
+     */
     destroyPieze() {
+        // Delete the current (down pieze) interval 
         clearInterval(this.currentInterval)
+        // Add the current pieze to the layout, to be part of the 'dead' piezes
         this.layout.AddPiezeToLayout(this.currentPieze, () => {
             this.currentPieze = {}
             // document.removeEventListener('keydown', this.detectMovement, false);
         })
-
+        // Check if exist some rows full of 'dead' piezes rest
         this.layout.checkRowFilled()
-        
+        // Generate a new pieze
         this.newPieze()
     }
     
 }
 
+/**
+ * Class Pieze,
+ * this class have the data to generate a new random pieze and the data of a specified pieze 
+ */
 class Pieze {
+    // Array of the possible color piezes
     colors = [
         '#2B5225',
         '#151551',
         '#AF6F55',
         '#555625'
     ]
+    // Array of arrays with the possible pieze forms
     forms = [
         [
             [new Box (), new Box ()],
@@ -135,19 +168,31 @@ class Pieze {
             [null, new Box (), new Box ()]
         ]
     ]
-    structure
-    actualPos
-    piColor
-    size
+    structure // Current structure (or form) of the pieze
+    actualPos // The position of the pieze on the differents moments
+    piColor // The random color
+    size // The total x size of the image
+
+    /**
+     * Constructor of a pieze
+     * @param {number} lWidth 
+     * @param {number} lHeight 
+     */
     constructor (lWidth, lHeight) {
+        // Get (random) the color and the structure of the pieze
         this.piColor = this.colors[Math.floor(Math.random()*this.colors.length)] 
         this.structure = this.forms[Math.floor(Math.random()*this.forms.length)]
-        
+        // Set (get) the size
         this.getSize()
+        // Inicialize the position of the pieze
         this.setInitialPos(lWidth, lHeight)
+        // Fill the pieze 'pixels' with the pieze color 
         this.fillPieze()
         
     }
+    /**
+     * Method to obtain the size of the pieze
+     */
     getSize() {
         this.size = 0
         this.structure[0].forEach(e => {
@@ -156,6 +201,11 @@ class Pieze {
             } 
         })
     }
+    /**
+     * 
+     * @param {*} lWidth 
+     * @param {*} lHeight 
+     */
     setInitialPos (lWidth, lHeight) {
         let width = lWidth / 2
         width = width - Math.round(this.size / 2)
