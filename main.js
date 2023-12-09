@@ -9,6 +9,7 @@ class Tetrix {
     lHeight = 50 // The same that lwidth but the height size
     timeTetrix = 300 // Default time of the interval time (when the pieze back)
     currentInterval // Var that will get the interval object
+    canvId
     
     /**
      * Constructor that inicialize the game
@@ -16,11 +17,26 @@ class Tetrix {
      */
     constructor (canvId) {
         // Initializing the layout with the canvasID
-        this.layout = new Layout(canvId, this.lWidth, this.lHeight)
-        // Generate the first pieze of the tetrix
-        this.newPieze()
+        this.canvId = canvId
+        this.init().then(() =>
+        {
+            this.eventKeyListen = document.addEventListener('keydown', this.detectMovement.bind(this), false)
+        })
+
+    }
+
+    /**
+     * Iniciamos el servicio
+     */
+    init() {
+        return new Promise((resolve, reject) => {
+            this.layout = new Layout(this.canvId, this.lWidth, this.lHeight)
+            // Generate the first pieze of the tetrix
+            this.newPieze()
+            resolve(true)
+        })
+        // document.removeEventListener('keydown');
         // Initializing the keys events to manipulate the piezea
-        this.eventKeyListen = document.addEventListener('keydown', this.detectMovement.bind(this), false)
     }
 
     /**
@@ -49,9 +65,14 @@ class Tetrix {
             if (resultCheck.isOK === true) {
                 this.currentPieze.down()
                 this.layout.draw(this.currentPieze)
-            } else if(resultCheck.destroyPieze === true) {
-                // If we can't continue, and we found that the pieze can't down more, we 'kill' or destroy the pieze
-                this.destroyPieze()
+            }
+            else if (resultCheck.destroyPieze === true || this.layout.checkDestroyPieze(this.currentPieze.structure, newPos)) {
+                if (this.layout.checkFinished(this.currentPieze.structure, newPos)) {
+                    this.finished()
+                } else {
+                    // If we can't continue, and we found that the pieze can't down more, we 'kill' or destroy the pieze
+                    this.destroyPieze()
+                }
             }
         }, this.timeTetrix)
     }
@@ -101,16 +122,30 @@ class Tetrix {
             case "ArrowDown":
                 newPos = Object.assign({}, self.currentPieze.actualPos)
                 newPos.y += 1
-                resultCheck = self.layout.checkPunch(self.currentPieze.structure, newPos)
+                resultCheck = self.layout.checkPunch(self.currentPieze.structure, newPos, self.currentPieze.actualPos)
                 if (resultCheck.isOK === true) {
                     self.currentPieze.down()
                     self.layout.draw(self.currentPieze)
-                } else if(resultCheck.destroyPieze === true) {
-                    self.destroyPieze()
+                } else if (resultCheck.destroyPieze === true || self.layout.checkDestroyPieze(self.currentPieze.structure, newPos)) {
+                // } else if(resultCheck.destroyPieze === true) {
+                    if (self.layout.checkFinished(self.currentPieze.structure, newPos))
+                    {
+                        self.finished()
+                    } else {
+
+                        self.destroyPieze()
+                    }
                 }
                 break;
         }
         
+    }
+
+    finished() {
+        alert("Has perdido, cierra el diálogo para reiniciar el juego")
+        this.currentPieze = null
+        clearInterval(this.currentInterval)
+        partidaDeTretix1 = this.init()
     }
 
     /**
@@ -164,7 +199,6 @@ class Pieze {
         ],
         [
             [new Box (), new Box (), null],
-            [null, new Box (), null],
             [null, new Box (), new Box ()]
         ]
     ]
@@ -297,7 +331,7 @@ class Layout {
                     this.canvasContext.fillStyle = item.color
                     this.canvasContext.fillRect(x * (BLOCKSIZE + 2) + 1, y * (BLOCKSIZE + 2) + 1, (BLOCKSIZE + 2) - 2, (BLOCKSIZE + 2) - 2)
                 }
-            })
+            }) 
         });
         this.drawPieze(pieze)
     }
@@ -361,6 +395,40 @@ class Layout {
         return ok
     }
 
+    /**
+     * Method that check if the game has finished
+     * @param {*} structure 
+     * @param {*} newPos 
+     * @returns bool, check if the tetrix has finished
+     */
+    checkFinished (structure, newPos) {
+        // let copyStructure = Object.assign([], structure)
+        let copyStructure = [...structure]
+        let finished = false 
+        
+        // Check down
+        
+        if (!this.checkTopPunch(copyStructure, newPos)) {
+            finished = true
+        }
+        
+
+        return finished
+    }
+
+    checkTopPunch (structure, newPos) {
+        let isOK = true
+        structure.forEach((row, y) => {
+            row.forEach((item, x) => {
+                if(item != null && newPos.y <= 1) {
+                    isOK = false
+                }                      
+                
+            })
+        })
+        return isOK
+    }
+
     checkRightPunch (structure, newPos) {
         let isOK = true
         structure.forEach((row, y) => {
@@ -373,6 +441,33 @@ class Layout {
         })
         return isOK
     }
+
+
+    checkDestroyPieze(structure, newPos) {
+        // let copyStructure = Object.assign([], structure)
+        let copyStructure = [...structure]
+        let ok = { isOK: false, destroyPieze: false }
+
+        copyStructure.forEach((row, y) => {
+            row.forEach((item, x) => {
+                if (item != null) {
+                    this.matrix.forEach((mrow, my) => {
+                        mrow.forEach((el, mx) => {
+                            if (el.isFilled === 1) {
+                                if (newPos.x + x == mx && newPos.y + y == my) {
+                                    ok.isOK = false
+                                    ok.destroyPieze = true
+                                }
+                            }
+                        })
+                    });
+                }
+            })
+        })
+
+        return ok
+    }
+
 
     checkMatrixPunch (structure, newPos) {
         let ok = {isOK: true, destroyPieze: false}
