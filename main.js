@@ -44,7 +44,7 @@ class Tetrix {
      */
     newPieze() {
         // Generate a new pieze object
-        this.currentPieze = new Pieze(this.lWidth, this.lHeight)
+        this.currentPieze = new Pieze(this.lWidth)
         // Print the layout, with the new pieze
         this.layout.draw(this.currentPieze)
         // Initializing the interval to down the pieze each 'this.timeTetrix' time
@@ -97,18 +97,28 @@ class Tetrix {
                     self.layout.draw(self.currentPieze)
                 }
                 break;
-            case "ArrowUp":
+            case "ArrowUp": // Giramos la pieza
+                // Establecemos la nueva estructura
+                let newStructure = self.currentPieze.turn()
 
-                self.currentPieze.turn()
+                newPos = Object.assign({}, self.currentPieze.actualPos)
+                let sizeBefore = self.currentPieze.size
+                let newSize = self.currentPieze.getSecifiedSize(newStructure)
 
-                /* newPos = Object.assign({}, self.currentPieze.actualPos)
-                newPos.x -= 1
-                resultCheck = self.layout.checkPunch(self.currentPieze.structure, newPos)
+                // Add and less the before and current sizes to keep the positions
+                newPos.x = self.currentPieze.actualPos.x + Math.round(sizeBefore / 2)
+                newPos.x = newPos.x - Math.round(newSize / 2)
+
+
+
+                resultCheck = self.layout.checkPunch(newStructure, newPos)
                 if (resultCheck.isOK === true) {
-                    self.currentPieze.left()
+                    self.currentPieze.finishTurn(newStructure)
                     self.layout.draw(self.currentPieze)
                 }
-                break; */
+
+                break;
+
             case "ArrowRight":
                 newPos = Object.assign({}, self.currentPieze.actualPos)
                 newPos.x += 1
@@ -191,6 +201,10 @@ class Pieze {
             [null,null, new Box ()]
         ],
         [
+            [new Box (), new Box (), new Box ()],
+            [new Box(), null, null]
+        ],
+        [
             [null, new Box (), null],
             [new Box (), new Box (), new Box ()]
         ],
@@ -212,14 +226,14 @@ class Pieze {
      * @param {number} lWidth 
      * @param {number} lHeight 
      */
-    constructor (lWidth, lHeight) {
+    constructor (lWidth) {
         // Get (random) the color and the structure of the pieze
         this.piColor = this.colors[Math.floor(Math.random()*this.colors.length)] 
         this.structure = this.forms[Math.floor(Math.random()*this.forms.length)]
         // Set (get) the size
         this.getSize()
         // Inicialize the position of the pieze
-        this.setInitialPos(lWidth, lHeight)
+        this.setInitialPos(lWidth)
         // Fill the pieze 'pixels' with the pieze color 
         this.fillPieze()
         
@@ -230,21 +244,36 @@ class Pieze {
     getSize() {
         this.size = 0
         this.structure[0].forEach(e => {
-            if (e != null ) {
-                this.size ++
-            } 
+            this.size ++  
         })
     }
     /**
-     * 
-     * @param {*} lWidth 
-     * @param {*} lHeight 
+     * Method to obtain the size of the pieze with specifiend structure
+     * @param {Object} structure New structure
+     * @returns the size
      */
-    setInitialPos (lWidth, lHeight) {
-        let width = lWidth / 2
-        width = width - Math.round(this.size / 2)
-        this.actualPos = {x:width, y: 0}
+    getSecifiedSize(structure) {
+        let size = 0
+        structure[0].forEach(e => {
+            size ++  
+        })
+        return size
     }
+    /**
+     * Method that set the initial obtain the position of the new pieze
+     * @param {int} lWidth, set the x position of the pieze in the matrix game
+     */
+    setInitialPos (lWidth) {
+        let width = lWidth / 2 // Calculate the center of the horizontal position
+        // Calculate the middle of the pieze position
+        width = width - Math.round(this.size / 2) 
+        // Set the initial position 
+        this.actualPos = {x:width, y: 0} 
+    }
+
+    /**
+     * Fill with the selected color the objects of the pieze
+     */
     fillPieze () {
         this.structure.forEach ((row, y) => {
             row.forEach ((item, y) => {
@@ -255,12 +284,15 @@ class Pieze {
             })
         })
     }
+    /**
+     * Method to turn the pieze
+     */
     turn () {
         let newStructure = [[]]
-        let beforePos = this.actualPos
+        let CPnewStructure = Object.assign([], [...this.structure])
 
-        this.structure.forEach(e => e.reverse())
-        this.structure = this.structure.map((row, i) => {
+        CPnewStructure.forEach(e => e.reverse())
+        CPnewStructure.forEach((row, i) => {
             row.forEach((e, n) => {
                 if (!newStructure[n]) {
                     newStructure[n] = []
@@ -270,16 +302,25 @@ class Pieze {
             // newStructure.forEach(e => e.reverse())
             
         })
+
+        return newStructure
+
+    }
+    /**
+     * Method to turn the pieze
+     */
+    finishTurn(newStructure) {        
+
         this.structure = newStructure
 
         // Calculamos la posición actual
         let sizeBefore = this.size
         this.getSize()
-        
-        /* let width
-        width = beforePos.x - Math.round((sizeBefore - this.size))
-        this.actualPos = {x: width, y: beforePos.y} */
 
+        // Add and less the before and current sizes to keep the positions
+        this.actualPos.x = this.actualPos.x + Math.round(sizeBefore / 2)
+        this.actualPos.x = this.actualPos.x - Math.round(this.size / 2)
+        
     }
     down () {
         this.actualPos.y ++
